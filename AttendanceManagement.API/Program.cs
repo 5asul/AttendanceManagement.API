@@ -35,7 +35,7 @@ try
     builder.Services.AddSwaggerGen(options =>
     {
         options.SchemaFilter<DateOnlySchemaFilter>();
-    });
+    }); 
 
 
 

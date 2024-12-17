@@ -1,4 +1,5 @@
-﻿using MyAttendanceApp.Models;
+﻿using AttendanceManagement.API.Models;
+using MyAttendanceApp.Models;
 
 namespace AttendanceManagement.API.Repository.Interfaces
 {
@@ -6,11 +7,12 @@ namespace AttendanceManagement.API.Repository.Interfaces
     {
         Task<User> AddWorkerAsync(string name, string email, string password);
         Task AssignCheckInCheckOutAsync(int workerId, DateTime checkInTime, DateTime checkOutTime);
-        Task<IEnumerable<Attendance>> GetRealTimeAttendanceAsync();
+        Task<IEnumerable<AttendanceRecord>> GetRealTimeAttendanceAsync();
         Task<IEnumerable<Absence>> GetAllAbsenceRequestsAsync();
         Task ApproveAbsenceRequestAsync(int requestId);
         Task RejectAbsenceRequestAsync(int requestId);
+        Task UpdateAttendanceStatusAsync(AttendanceStatus attendanceStatus, int attendanceId);    
         Task<object> GenerateReportAsync(int? workerId, bool yearly, int year, int? month = null);
-        Task<string> GenerateBarcodeCodeAsync();
+        Task<(string Code, string QrCodeBase64)> GenerateBarcodeCodeAsync();
     }
 }

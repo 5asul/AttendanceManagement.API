@@ -1,5 +1,10 @@
-﻿using AttendanceManagement.API.Repository.Interfaces;
+﻿using AttendanceManagement.API.Models;
+using AttendanceManagement.API.Repository.Interfaces;
 using MyAttendanceApp.Models;
+using QRCoder;
+using static QRCoder.PayloadGenerator;
+
+
 
 
 public class AdminRepository : IAdminRepository
@@ -11,16 +16,16 @@ public class AdminRepository : IAdminRepository
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<User> AddWorkerAsync(string name, string email, string password)
+    public async Task<User> AddWorkerAsync(string name, string PhoneNumber, string password)
     {
         var userRepo = _unitOfWork.Repository<User>();
-        var existingUsers = await userRepo.FindAsync(u => u.Email == email);
+        var existingUsers = await userRepo.FindAsync(u => u.PhoneNumber == PhoneNumber);
         if (existingUsers.Any()) throw new Exception("Email already exists.");
 
         var worker = new User
         {
             Name = name,
-            Email = email,
+            PhoneNumber = PhoneNumber,
             Password = password, // In production, hash this
             Role = UserRole.worker,
             CreatedAt = DateTime.UtcNow
@@ -34,9 +39,9 @@ public class AdminRepository : IAdminRepository
     public async Task AssignCheckInCheckOutAsync(int workerId, DateTime checkInTime, DateTime checkOutTime)
     {
 
-        var attendanceRepo = _unitOfWork.Repository<Attendance>();
+        var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
 
-        var newAttendance = new Attendance
+        var newAttendance = new AttendanceRecord
         {
             WorkerId = workerId,
             CheckIn = checkInTime,
@@ -49,10 +54,10 @@ public class AdminRepository : IAdminRepository
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<Attendance>> GetRealTimeAttendanceAsync()
+    public async Task<IEnumerable<AttendanceRecord>> GetRealTimeAttendanceAsync()
     {
         // For real-time, you might filter today's attendance or last known check-ins without check-outs
-        var attendanceRepo = _unitOfWork.Repository<Attendance>();
+        var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
         // For simplicity, let's return all today's attendance
         var today = DateTime.UtcNow.Date;
         var records = await attendanceRepo.FindAsync(a => a.CheckIn.Date == today);
@@ -87,12 +92,25 @@ public class AdminRepository : IAdminRepository
         await _unitOfWork.SaveChangesAsync();
     }
 
+    public async Task UpdateAttendanceStatusAsync(AttendanceStatus attendanceStatus, int attendanceId)
+    {
+        var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
+        var attendanceRecord = await attendanceRepo.GetByIdAsync(attendanceId);
+        if (attendanceRecord == null) throw new Exception("Attendance Record not found");
+
+        attendanceRecord.Status = attendanceStatus;
+        attendanceRepo.Update(attendanceRecord);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+
+
     public async Task<object> GenerateReportAsync(int? workerId, bool yearly, int year, int? month = null)
     {
         // Simplified reporting logic
         // Retrieve attendance records for either a specific worker or all workers
-        var attendanceRepo = _unitOfWork.Repository<Attendance>();
-        IEnumerable<Attendance> records;
+        var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
+        IEnumerable<AttendanceRecord> records;
 
         if (workerId.HasValue)
         {
@@ -122,21 +140,69 @@ public class AdminRepository : IAdminRepository
         };
     }
 
-    public async Task<string> GenerateBarcodeCodeAsync()
+
+    public async Task<(string Code, string QrCodeBase64)> GenerateBarcodeCodeAsync()
     {
         // Generate a unique code
         var code = Guid.NewGuid().ToString("N");
-        // You might store this in the database as a Barcode entity or return it directly
+
+
+
+        // Generate the base64 barcode
+        var qrGenerator = new QRCodeGenerator();
+
+        QRCodeData qrCodeData = qrGenerator.CreateQrCode(code, QRCodeGenerator.ECCLevel.Q);
+        var qrCode = new PngByteQRCode(qrCodeData);
+        byte[] qrCodeBytes = qrCode.GetGraphic(20);
+
+        var qrCodeBase64 = Convert.ToBase64String(qrCodeBytes);
+
+        //save png qrCode
+        var imagesFolder = Path.Combine(Directory.GetCurrentDirectory(), "QRCodes");
+        if (!Directory.Exists(imagesFolder))
+        {
+            Directory.CreateDirectory(imagesFolder);
+        }
+
+        var filePath = Path.Combine(imagesFolder, $"{code}.png");
+        await File.WriteAllBytesAsync(filePath, qrCodeBytes);
+
+
+        //save in database
         var barcodeRepo = _unitOfWork.Repository<Barcode>();
         var barcode = new Barcode
         {
-            AdminId = 1, // Replace with actual AdminId from context
+            AdminId = 1,
             Location = "DefaultLocation",
             BarcodeValue = code,
+            BarcodeBase64 = qrCodeBase64,
             CreatedAt = DateTime.UtcNow
         };
         await barcodeRepo.AddAsync(barcode);
         await _unitOfWork.SaveChangesAsync();
-        return code;
+
+        return (code, qrCodeBase64);
     }
+
+    
+
+
+
+    //public async Task<string> GenerateBarcodeCodeAsync()
+    //{
+    //    // Generate a unique code
+    //    var code = Guid.NewGuid().ToString("N");
+    //    // You might store this in the database as a Barcode entity or return it directly
+    //    var barcodeRepo = _unitOfWork.Repository<Barcode>();
+    //    var barcode = new Barcode
+    //    {
+    //        AdminId = 1, // Replace with actual AdminId from context
+    //        Location = "DefaultLocation",
+    //        BarcodeValue = code,
+    //        CreatedAt = DateTime.UtcNow
+    //    };
+    //    await barcodeRepo.AddAsync(barcode);
+    //    await _unitOfWork.SaveChangesAsync();
+    //    return code;
+    //}
 }

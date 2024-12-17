@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AttendanceManagement.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241210031452_add_start_and_end_date_in_absentClass")]
-    partial class add_start_and_end_date_in_absentClass
+    [Migration("20241217202019_initialCreate")]
+    partial class initialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -45,6 +45,9 @@ namespace AttendanceManagement.API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<int>("WorkerId")
                         .HasColumnType("int");
 
@@ -54,7 +57,51 @@ namespace AttendanceManagement.API.Migrations
 
                     b.HasIndex("WorkerId");
 
-                    b.ToTable("AttendanceRecord");
+                    b.ToTable("AttendanceRecords");
+                });
+
+            modelBuilder.Entity("AttendanceManagement.API.Models.UserWorkTime", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkTimeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "WorkTimeId");
+
+                    b.HasIndex("WorkTimeId");
+
+                    b.ToTable("UserWorkTimes");
+                });
+
+            modelBuilder.Entity("AttendanceManagement.API.Models.WorkTime", b =>
+                {
+                    b.Property<int>("WorkerTimeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WorkerTimeId"));
+
+                    b.Property<DateTime>("CheckInTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CheckOutTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("WorkerTimeId");
+
+                    b.ToTable("WorkTimes");
                 });
 
             modelBuilder.Entity("MyAttendanceApp.Models.Absence", b =>
@@ -94,33 +141,6 @@ namespace AttendanceManagement.API.Migrations
                     b.ToTable("Absences");
                 });
 
-            modelBuilder.Entity("MyAttendanceApp.Models.Attendance", b =>
-                {
-                    b.Property<int>("AttendanceId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttendanceId"));
-
-                    b.Property<DateTime>("CheckIn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("CheckOut")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("WorkerId")
-                        .HasColumnType("int");
-
-                    b.HasKey("AttendanceId");
-
-                    b.HasIndex("WorkerId");
-
-                    b.ToTable("Attendances");
-                });
-
             modelBuilder.Entity("MyAttendanceApp.Models.Barcode", b =>
                 {
                     b.Property<int>("BarcodeId")
@@ -131,6 +151,10 @@ namespace AttendanceManagement.API.Migrations
 
                     b.Property<int>("AdminId")
                         .HasColumnType("int");
+
+                    b.Property<string>("BarcodeBase64")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("BarcodeValue")
                         .IsRequired()
@@ -189,10 +213,6 @@ namespace AttendanceManagement.API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -201,12 +221,16 @@ namespace AttendanceManagement.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
                     b.HasKey("UserId");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("PhoneNumber")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -221,7 +245,7 @@ namespace AttendanceManagement.API.Migrations
                         .IsRequired();
 
                     b.HasOne("MyAttendanceApp.Models.User", "Worker")
-                        .WithMany()
+                        .WithMany("Attendances")
                         .HasForeignKey("WorkerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -231,21 +255,29 @@ namespace AttendanceManagement.API.Migrations
                     b.Navigation("Worker");
                 });
 
+            modelBuilder.Entity("AttendanceManagement.API.Models.UserWorkTime", b =>
+                {
+                    b.HasOne("MyAttendanceApp.Models.User", "User")
+                        .WithMany("UserWorkTimes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AttendanceManagement.API.Models.WorkTime", "WorkTime")
+                        .WithMany("UserWorkTimes")
+                        .HasForeignKey("WorkTimeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("WorkTime");
+                });
+
             modelBuilder.Entity("MyAttendanceApp.Models.Absence", b =>
                 {
                     b.HasOne("MyAttendanceApp.Models.User", "Worker")
                         .WithMany("Absences")
-                        .HasForeignKey("WorkerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Worker");
-                });
-
-            modelBuilder.Entity("MyAttendanceApp.Models.Attendance", b =>
-                {
-                    b.HasOne("MyAttendanceApp.Models.User", "Worker")
-                        .WithMany("Attendances")
                         .HasForeignKey("WorkerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -275,6 +307,11 @@ namespace AttendanceManagement.API.Migrations
                     b.Navigation("Worker");
                 });
 
+            modelBuilder.Entity("AttendanceManagement.API.Models.WorkTime", b =>
+                {
+                    b.Navigation("UserWorkTimes");
+                });
+
             modelBuilder.Entity("MyAttendanceApp.Models.Barcode", b =>
                 {
                     b.Navigation("Attendances");
@@ -289,6 +326,8 @@ namespace AttendanceManagement.API.Migrations
                     b.Navigation("Barcodes");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("UserWorkTimes");
                 });
 #pragma warning restore 612, 618
         }

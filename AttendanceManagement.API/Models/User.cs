@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using AttendanceManagement.API.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace MyAttendanceApp.Models
 {
@@ -16,8 +17,8 @@ namespace MyAttendanceApp.Models
         [Required]
         public string Name { get; set; } = null!;
 
-        [Required, EmailAddress]
-        public string Email { get; set; } = null!;
+        [Required, Phone]
+        public string PhoneNumber { get; set; } = null!;
 
         [Required]
         public string Password { get; set; } = null!;
@@ -28,10 +29,13 @@ namespace MyAttendanceApp.Models
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
+        // Navigation properties for one-to-many relationship
         public ICollection<Barcode> Barcodes { get; set; } = new List<Barcode>();
-        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+        public ICollection<AttendanceRecord> Attendances { get; set; } = new List<AttendanceRecord>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
         public ICollection<Absence> Absences { get; set; } = new List<Absence>();
+
+        // Navigation property for one-to-many relationship in junction table for many to many relation ship
+        public virtual ICollection<UserWorkTime> UserWorkTimes { get; set; } = new HashSet<UserWorkTime>();
     }
 }

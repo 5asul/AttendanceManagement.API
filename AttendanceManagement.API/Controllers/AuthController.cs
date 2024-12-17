@@ -16,7 +16,7 @@ public class AuthController : ControllerBase
     public class CreateAdminDto
     {
         public string Name { get; set; } = null!;
-        public string Email { get; set; } = null!;
+        public string PhoneNumber { get; set; } = null!;
         public string Password { get; set; } = null!;
     }
 
@@ -27,14 +27,14 @@ public class AuthController : ControllerBase
         var userRepo = _unitOfWork.Repository<User>();
 
         // Check if email already exists
-        var existingUsers = await userRepo.FindAsync(u => u.Email == dto.Email);
+        var existingUsers = await userRepo.FindAsync(u => u.PhoneNumber == dto.PhoneNumber);
         if (existingUsers.Any())
-            return BadRequest("Email already exists.");
+            return BadRequest("Phone Number already exists.");
 
         var admin = new User
         {
             Name = dto.Name,
-            Email = dto.Email,
+            PhoneNumber = dto.PhoneNumber,
             Password = dto.Password, // In production, hash this
             Role = UserRole.admin,
             CreatedAt = DateTime.UtcNow

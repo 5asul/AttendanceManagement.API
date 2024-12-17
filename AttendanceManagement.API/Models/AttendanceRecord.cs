@@ -4,6 +4,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AttendanceManagement.API.Models
 {
+    public enum AttendanceStatus
+    {
+        Attended,
+        Absent,
+        AtWork
+    }
     public class AttendanceRecord
     {
         [Key]
@@ -19,6 +25,7 @@ namespace AttendanceManagement.API.Models
         public DateTime CheckIn { get; set; }
 
         public DateTime? CheckOut { get; set; }
+        public AttendanceStatus Status { get; set; } = AttendanceStatus.Absent;
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

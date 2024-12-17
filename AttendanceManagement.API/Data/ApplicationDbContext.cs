@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AttendanceManagement.API.Models;
+using Microsoft.EntityFrameworkCore;
 using MyAttendanceApp.Models;
 
 namespace AttendanceManagement.API.Data
@@ -9,9 +10,11 @@ namespace AttendanceManagement.API.Data
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Barcode> Barcodes { get; set; } = null!;
-        public DbSet<Attendance> Attendances { get; set; } = null!;
+        public DbSet<AttendanceRecord> AttendanceRecords { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Absence> Absences { get; set; } = null!;
+        public DbSet<WorkTime> WorkTimes { get;set;}=null!;
+        public DbSet<UserWorkTime> UserWorkTimes { get;set;}=null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -20,7 +23,7 @@ namespace AttendanceManagement.API.Data
             
 
             modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
+                .HasIndex(u => u.PhoneNumber)
                 .IsUnique();
 
             // Relationships:
@@ -59,6 +62,23 @@ namespace AttendanceManagement.API.Data
                 .WithOne(a => a.Barcode)
                 .HasForeignKey(a => a.BarcodeId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Many-to-many relationship configuration
+            modelBuilder.Entity<UserWorkTime>()
+                .HasKey(uwt => new { uwt.UserId, uwt.WorkTimeId });
+
+            modelBuilder.Entity<UserWorkTime>()
+                .HasOne(uwt => uwt.User)
+                .WithMany(u => u.UserWorkTimes)
+                .HasForeignKey(uwt => uwt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserWorkTime>()
+                .HasOne(uwt => uwt.WorkTime)
+                .WithMany(wt => wt.UserWorkTimes)
+                .HasForeignKey(uwt => uwt.WorkTimeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

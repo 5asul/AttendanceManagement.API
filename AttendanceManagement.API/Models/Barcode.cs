@@ -1,4 +1,5 @@
 ﻿using AttendanceManagement.API.Models;
+using System.Buffers.Text;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,6 +18,9 @@ namespace MyAttendanceApp.Models
 
         [Required]
         public string BarcodeValue { get; set; } = null!;
+
+        [Required]
+        public string BarcodeBase64 { get; set; } = null!;
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

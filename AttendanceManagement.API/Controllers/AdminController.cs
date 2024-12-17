@@ -1,4 +1,5 @@
-﻿using AttendanceManagement.API.Repository.Interfaces;
+﻿using AttendanceManagement.API.Models;
+using AttendanceManagement.API.Repository.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -57,6 +58,13 @@ public class AdminController : ControllerBase
         return Ok("Request rejected.");
     }
 
+    [HttpPost]
+    public async Task<IActionResult> UpdateAttendanceStatus(AttendanceStatus attendanceStatus , int attendanceId)
+    {
+        await _adminRepository.UpdateAttendanceStatusAsync(attendanceStatus, attendanceId);
+        return Ok("Attendance Status Updated.");
+    }
+
     [HttpGet("reports")]
     public async Task<IActionResult> GenerateReport([FromQuery] int? workerId, [FromQuery] bool yearly, [FromQuery] int year, [FromQuery] int? month = null)
     {
@@ -67,8 +75,8 @@ public class AdminController : ControllerBase
     [HttpPost("generate-barcode-code")]
     public async Task<IActionResult> GenerateBarcodeCode()
     {
-        var code = await _adminRepository.GenerateBarcodeCodeAsync();
-        return Ok(new { BarcodeCode = code });
+        var (barcodeCode, qrCodeBase64) = await _adminRepository.GenerateBarcodeCodeAsync();
+        return Ok(new { BarcodeCode = barcodeCode, QrCodeBase64 = qrCodeBase64 });
     }
 }
 
