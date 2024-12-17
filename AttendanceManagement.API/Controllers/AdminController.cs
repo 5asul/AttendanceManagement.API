@@ -58,8 +58,8 @@ public class AdminController : ControllerBase
         return Ok("Request rejected.");
     }
 
-    [HttpPost]
-    public async Task<IActionResult> UpdateAttendanceStatus(AttendanceStatus attendanceStatus , int attendanceId)
+    [HttpPut("attendance-record/{attendanceId}/status")]
+    public async Task<IActionResult> UpdateAttendanceStatus([FromBody] AttendanceStatus attendanceStatus , int attendanceId)
     {
         await _adminRepository.UpdateAttendanceStatusAsync(attendanceStatus, attendanceId);
         return Ok("Attendance Status Updated.");
