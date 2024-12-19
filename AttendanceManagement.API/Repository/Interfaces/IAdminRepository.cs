@@ -6,7 +6,8 @@ namespace AttendanceManagement.API.Repository.Interfaces
     public interface IAdminRepository
     {
         Task<User> AddWorkerAsync(string name, string email, string password);
-        Task AssignCheckInCheckOutAsync(int workerId, DateTime checkInTime, DateTime checkOutTime);
+        Task AddCheckInCheckOutTimeAsync( DateTime checkInTime, DateTime checkOutTime);
+        Task AssignUserToWorkTimeAsync (int user, int workTime);
         Task<IEnumerable<AttendanceRecord>> GetRealTimeAttendanceAsync();
         Task<IEnumerable<Absence>> GetAllAbsenceRequestsAsync();
         Task ApproveAbsenceRequestAsync(int requestId);

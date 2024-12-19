@@ -6,9 +6,9 @@ namespace AttendanceManagement.API.Models
 {
     public enum AttendanceStatus
     {
-        Attended,
         Absent,
-        AtWork
+        AtWork,
+        Attended
     }
     public class AttendanceRecord
     {

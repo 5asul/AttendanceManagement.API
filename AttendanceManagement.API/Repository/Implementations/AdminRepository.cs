@@ -36,21 +36,59 @@ public class AdminRepository : IAdminRepository
         return worker;
     }
 
-    public async Task AssignCheckInCheckOutAsync(int workerId, DateTime checkInTime, DateTime checkOutTime)
+    public async Task AssignUserToWorkTimeAsync(int userId, int workTimeId)
+    {
+        if (userId <= 0)
+            throw new ArgumentException("Invalid user id.", nameof(userId));
+        if (workTimeId <= 0)
+            throw new ArgumentException("Invalid work time id.", nameof(workTimeId));
+
+        var userWorkTimeRepo = _unitOfWork.Repository<UserWorkTime>();
+        var userRepo = _unitOfWork.Repository<User>();
+        var workTimeRepo = _unitOfWork.Repository<WorkTime>();
+
+        // Check that the user exists
+        var user = await userRepo.GetByIdAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException($"User with ID {userId} not found.");
+
+        // Check that the work time exists
+        var workTime = await workTimeRepo.GetByIdAsync(workTimeId);
+        if (workTime == null)
+            throw new InvalidOperationException($"WorkTime with ID {workTimeId} not found.");
+
+        // Check if this user is already assigned to the given work time
+        bool alreadyAssigned = await userWorkTimeRepo.AnyAsync(uwt => uwt.UserId == userId && uwt.WorkTimeId == workTimeId);
+        if (alreadyAssigned)
+            throw new InvalidOperationException("This user is already assigned to the specified work time.");
+
+
+        // Assign the user to the work time
+        var newAssignedUserToWorkTime = new UserWorkTime
+        {
+            User = user,
+            WorkTime = workTime,
+        };
+
+        await userWorkTimeRepo.AddAsync(newAssignedUserToWorkTime);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task AddCheckInCheckOutTimeAsync( DateTime checkInTime, DateTime checkOutTime)
     {
 
-        var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
+        var WorkTimeRepo = _unitOfWork.Repository<WorkTime>();
 
-        var newAttendance = new AttendanceRecord
+        var newWorkTime = new WorkTime
         {
-            WorkerId = workerId,
-            CheckIn = checkInTime,
-            CheckOut = checkOutTime,
-            CreatedAt = DateTime.UtcNow,
+
+            CheckInTime = checkInTime,
+            CheckOutTime = checkOutTime,
+            
             
         };
 
-        await attendanceRepo.AddAsync(newAttendance);
+        await WorkTimeRepo.AddAsync(newWorkTime);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -184,7 +222,9 @@ public class AdminRepository : IAdminRepository
         return (code, qrCodeBase64);
     }
 
-    
+   
+
+
 
 
 

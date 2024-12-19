@@ -1,38 +1,40 @@
-﻿using AttendanceManagement.API.Repository.Interfaces;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MyAttendanceApp.Models;
-using System.Threading.Tasks;
+
+
 
 [ApiController]
 [Route("api/[controller]")]
 // [Authorize(Roles = "worker")] // Ideally you'd have authorization here
 public class WorkerController : ControllerBase
 {
-    private readonly IWorkerRepository _workerRepository;
+   
+    private readonly IUnitOfWork _unitOfWork;
 
-    public WorkerController(IWorkerRepository workerRepository)
+    public WorkerController( IUnitOfWork unitOfWork)
     {
-        _workerRepository = workerRepository;
+        
+        _unitOfWork = unitOfWork;
     }
 
     [HttpPost("check-in")]
     public async Task<IActionResult> CheckIn([FromBody] CheckInDto dto)
     {
-        await _workerRepository.CheckInAsync(dto.WorkerId, dto.BarcodeValue);
+        await _unitOfWork.WorkerRepository.CheckInAsync(dto.WorkerId, dto.BarcodeValue);
         return Ok("Checked in successfully.");
     }
 
     [HttpPost("check-out")]
     public async Task<IActionResult> CheckOut([FromBody] CheckOutDto dto)
     {
-        await _workerRepository.CheckOutAsync(dto.WorkerId, dto.BarcodeValue);
+        await _unitOfWork.WorkerRepository.CheckOutAsync(dto.WorkerId, dto.BarcodeValue);
         return Ok("Checked out successfully.");
     }
 
     [HttpPost("absence-request")]
     public async Task<IActionResult> CreateAbsenceRequest([FromBody] CreateAbsenceRequestDto dto)
     {
-        var request = await _workerRepository.CreateAbsenceRequestAsync(dto.WorkerId, dto.Reason, dto.StartDate,dto.EndDate ,dto.Type);
+        var request = await _unitOfWork.WorkerRepository.CreateAbsenceRequestAsync(dto.WorkerId, dto.Reason, dto.StartDate,dto.EndDate ,dto.Type);
         return Ok(request);
     }
 }

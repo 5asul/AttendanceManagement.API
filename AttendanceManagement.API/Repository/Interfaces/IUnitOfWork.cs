@@ -1,5 +1,6 @@
 ﻿
 using AttendanceManagement.API.Repository.Interfaces;
+using System.Linq.Expressions;
 
 
 public interface IUnitOfWork
@@ -8,5 +9,6 @@ public interface IUnitOfWork
     IAdminRepository AdminRepository { get; }
     IWorkerRepository WorkerRepository { get; }
     Task<int> SaveChangesAsync();
+
     void Dispose();
 }
