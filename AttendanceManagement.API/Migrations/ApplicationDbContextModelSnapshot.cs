@@ -57,9 +57,46 @@ namespace AttendanceManagement.API.Migrations
                     b.ToTable("AttendanceRecords");
                 });
 
+            modelBuilder.Entity("AttendanceManagement.API.Models.Employee", b =>
+                {
+                    b.Property<int>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeId"));
+
+                    b.Property<int>("AdminId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("EmployeeId");
+
+                    b.HasIndex("AdminId");
+
+                    b.ToTable("Employees");
+                });
+
             modelBuilder.Entity("AttendanceManagement.API.Models.UserWorkTime", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<int>("WorkTimeId")
@@ -68,7 +105,7 @@ namespace AttendanceManagement.API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("UserId", "WorkTimeId");
+                    b.HasKey("EmployeeId", "WorkTimeId");
 
                     b.HasIndex("WorkTimeId");
 
@@ -95,6 +132,9 @@ namespace AttendanceManagement.API.Migrations
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.HasKey("WorkerTimeId");
 
@@ -222,9 +262,6 @@ namespace AttendanceManagement.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
                     b.HasKey("UserId");
 
                     b.HasIndex("PhoneNumber")
@@ -242,7 +279,7 @@ namespace AttendanceManagement.API.Migrations
                         .IsRequired();
 
                     b.HasOne("MyAttendanceApp.Models.User", "Worker")
-                        .WithMany("Attendances")
+                        .WithMany("AttendanceRecords")
                         .HasForeignKey("WorkerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -252,11 +289,22 @@ namespace AttendanceManagement.API.Migrations
                     b.Navigation("Worker");
                 });
 
+            modelBuilder.Entity("AttendanceManagement.API.Models.Employee", b =>
+                {
+                    b.HasOne("MyAttendanceApp.Models.User", "Admin")
+                        .WithMany("Employees")
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
+                });
+
             modelBuilder.Entity("AttendanceManagement.API.Models.UserWorkTime", b =>
                 {
-                    b.HasOne("MyAttendanceApp.Models.User", "User")
+                    b.HasOne("AttendanceManagement.API.Models.Employee", "Employee")
                         .WithMany("UserWorkTimes")
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -266,7 +314,7 @@ namespace AttendanceManagement.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("Employee");
 
                     b.Navigation("WorkTime");
                 });
@@ -304,6 +352,11 @@ namespace AttendanceManagement.API.Migrations
                     b.Navigation("Worker");
                 });
 
+            modelBuilder.Entity("AttendanceManagement.API.Models.Employee", b =>
+                {
+                    b.Navigation("UserWorkTimes");
+                });
+
             modelBuilder.Entity("AttendanceManagement.API.Models.WorkTime", b =>
                 {
                     b.Navigation("UserWorkTimes");
@@ -318,13 +371,13 @@ namespace AttendanceManagement.API.Migrations
                 {
                     b.Navigation("Absences");
 
-                    b.Navigation("Attendances");
+                    b.Navigation("AttendanceRecords");
 
                     b.Navigation("Barcodes");
 
-                    b.Navigation("Notifications");
+                    b.Navigation("Employees");
 
-                    b.Navigation("UserWorkTimes");
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

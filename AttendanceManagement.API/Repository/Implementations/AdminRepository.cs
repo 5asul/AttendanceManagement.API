@@ -16,18 +16,17 @@ public class AdminRepository : IAdminRepository
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<User> AddWorkerAsync(string name, string PhoneNumber, string password)
+    public async Task<Employee> AddWorkerAsync(string name, string phoneNumber, string password)
     {
-        var userRepo = _unitOfWork.Repository<User>();
-        var existingUsers = await userRepo.FindAsync(u => u.PhoneNumber == PhoneNumber);
+        var userRepo = _unitOfWork.Repository<Employee>();
+        var existingUsers = await userRepo.FindAsync(u => u.PhoneNumber == phoneNumber);
         if (existingUsers.Any()) throw new Exception("Email already exists.");
 
-        var worker = new User
+        var worker = new Employee
         {
-            Name = name,
-            PhoneNumber = PhoneNumber,
+            FullName = name,
+            PhoneNumber = phoneNumber,
             Password = password, // In production, hash this
-            Role = UserRole.worker,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -36,21 +35,21 @@ public class AdminRepository : IAdminRepository
         return worker;
     }
 
-    public async Task AssignUserToWorkTimeAsync(int userId, int workTimeId)
+    public async Task AssignEmployeeToWorkTimeAsync(int employeeId, int workTimeId)
     {
-        if (userId <= 0)
-            throw new ArgumentException("Invalid user id.", nameof(userId));
+        if (employeeId <= 0)
+            throw new ArgumentException("Invalid user id.", nameof(employeeId));
         if (workTimeId <= 0)
             throw new ArgumentException("Invalid work time id.", nameof(workTimeId));
 
         var userWorkTimeRepo = _unitOfWork.Repository<UserWorkTime>();
-        var userRepo = _unitOfWork.Repository<User>();
+        var userRepo = _unitOfWork.Repository<Employee>();
         var workTimeRepo = _unitOfWork.Repository<WorkTime>();
 
         // Check that the user exists
-        var user = await userRepo.GetByIdAsync(userId);
+        var user = await userRepo.GetByIdAsync(employeeId);
         if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found.");
+            throw new InvalidOperationException($"User with ID {employeeId} not found.");
 
         // Check that the work time exists
         var workTime = await workTimeRepo.GetByIdAsync(workTimeId);
@@ -58,7 +57,7 @@ public class AdminRepository : IAdminRepository
             throw new InvalidOperationException($"WorkTime with ID {workTimeId} not found.");
 
         // Check if this user is already assigned to the given work time
-        bool alreadyAssigned = await userWorkTimeRepo.AnyAsync(uwt => uwt.UserId == userId && uwt.WorkTimeId == workTimeId);
+        bool alreadyAssigned = await userWorkTimeRepo.AnyAsync(uwt => uwt.EmployeeId == employeeId && uwt.WorkTimeId == workTimeId);
         if (alreadyAssigned)
             throw new InvalidOperationException("This user is already assigned to the specified work time.");
 
@@ -66,7 +65,7 @@ public class AdminRepository : IAdminRepository
         // Assign the user to the work time
         var newAssignedUserToWorkTime = new UserWorkTime
         {
-            User = user,
+            Employee = user,
             WorkTime = workTime,
         };
 
@@ -74,7 +73,7 @@ public class AdminRepository : IAdminRepository
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task AddCheckInCheckOutTimeAsync( DateTime checkInTime, DateTime checkOutTime)
+    public async Task AddCheckInCheckOutTimeAsync( DateTime checkInTime, DateTime checkOutTime , CheckType type)
     {
 
         var WorkTimeRepo = _unitOfWork.Repository<WorkTime>();
@@ -84,6 +83,7 @@ public class AdminRepository : IAdminRepository
 
             CheckInTime = checkInTime,
             CheckOutTime = checkOutTime,
+            Type = type
             
             
         };

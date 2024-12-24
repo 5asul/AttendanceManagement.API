@@ -3,11 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MyAttendanceApp.Models
 {
-    public enum UserRole
-    {
-        admin,
-        worker
-    }
+  
 
     public class User
     {
@@ -24,18 +20,15 @@ namespace MyAttendanceApp.Models
         public string Password { get; set; } = null!;
 
         [Required]
-        public UserRole Role { get; set; } = UserRole.worker;
-
-        [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties for one-to-many relationship
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
         public ICollection<Barcode> Barcodes { get; set; } = new List<Barcode>();
-        public ICollection<AttendanceRecord> Attendances { get; set; } = new List<AttendanceRecord>();
+        public ICollection<AttendanceRecord> AttendanceRecords { get; set; } = new List<AttendanceRecord>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
         public ICollection<Absence> Absences { get; set; } = new List<Absence>();
 
-        // Navigation property for one-to-many relationship in junction table for many to many relation ship
-        public virtual ICollection<UserWorkTime> UserWorkTimes { get; set; } = new HashSet<UserWorkTime>();
+       
     }
 }

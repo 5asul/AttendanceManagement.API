@@ -15,6 +15,7 @@ namespace AttendanceManagement.API.Data
         public DbSet<Absence> Absences { get; set; } = null!;
         public DbSet<WorkTime> WorkTimes { get;set;}=null!;
         public DbSet<UserWorkTime> UserWorkTimes { get;set;}=null!;
+        public DbSet<Employee> Employees { get; set; }=null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,7 +38,7 @@ namespace AttendanceManagement.API.Data
 
             // One worker -> Many attendance records
             modelBuilder.Entity<User>()
-                .HasMany(u => u.Attendances)
+                .HasMany(u => u.AttendanceRecords)
                 .WithOne(a => a.Worker)
                 .HasForeignKey(a => a.WorkerId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -63,14 +64,21 @@ namespace AttendanceManagement.API.Data
                 .HasForeignKey(a => a.BarcodeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // One Users -> Many Employees
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Employees)
+                .WithOne(e => e.Admin)
+                .HasForeignKey(e => e.AdminId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Many-to-many relationship configuration
             modelBuilder.Entity<UserWorkTime>()
-                .HasKey(uwt => new { uwt.UserId, uwt.WorkTimeId });
+                .HasKey(uwt => new { uwt.EmployeeId, uwt.WorkTimeId });
 
             modelBuilder.Entity<UserWorkTime>()
-                .HasOne(uwt => uwt.User)
+                .HasOne(uwt => uwt.Employee)
                 .WithMany(u => u.UserWorkTimes)
-                .HasForeignKey(uwt => uwt.UserId)
+                .HasForeignKey(uwt => uwt.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<UserWorkTime>()
