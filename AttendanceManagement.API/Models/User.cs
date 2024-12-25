@@ -25,9 +25,10 @@ namespace MyAttendanceApp.Models
         // Navigation properties for one-to-many relationship
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
         public ICollection<Barcode> Barcodes { get; set; } = new List<Barcode>();
-        public ICollection<AttendanceRecord> AttendanceRecords { get; set; } = new List<AttendanceRecord>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
         public ICollection<Absence> Absences { get; set; } = new List<Absence>();
+
+        public ICollection<WorkTime> workTimes { get; set; } = new List<WorkTime>();
 
        
     }

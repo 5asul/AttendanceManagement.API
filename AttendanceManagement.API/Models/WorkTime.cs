@@ -1,5 +1,6 @@
 ﻿using MyAttendanceApp.Models;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceManagement.API.Models
 {
@@ -12,6 +13,9 @@ namespace AttendanceManagement.API.Models
     {
         [Key]
         public int WorkerTimeId { get; set; }
+        [ForeignKey(nameof(Admin))]
+        public int AdminId { get; set; }
+        public User? Admin {  get; set; }
 
         public DateTime CheckInTime { get; set; } = DateTime.Now;
 

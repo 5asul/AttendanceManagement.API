@@ -1,5 +1,6 @@
 ﻿using AttendanceManagement.API.Models;
 using AttendanceManagement.API.Repository.Interfaces;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MyAttendanceApp.Models;
 using QRCoder;
 using static QRCoder.PayloadGenerator;
@@ -16,7 +17,7 @@ public class AdminRepository : IAdminRepository
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Employee> AddWorkerAsync(string name, string phoneNumber, string password)
+    public async Task<Employee> AddEmployeeAsync (string name, string phoneNumber, string password)
     {
         var userRepo = _unitOfWork.Repository<Employee>();
         var existingUsers = await userRepo.FindAsync(u => u.PhoneNumber == phoneNumber);
@@ -33,6 +34,44 @@ public class AdminRepository : IAdminRepository
         await userRepo.AddAsync(worker);
         await _unitOfWork.SaveChangesAsync();
         return worker;
+    }
+
+    public async Task<IEnumerable<Employee>> GetEmployeesAsync(int adminId)
+    {
+        var employeeRepo = _unitOfWork.Repository<Employee>();
+        var employees = await employeeRepo.FindAsync(e => e.AdminId == adminId);
+
+        return employees;
+
+    }
+
+    public async Task EditEmployeeInfo(int employeeId, Employee employee)
+    {
+        var employeeRepo = _unitOfWork.Repository<Employee>();
+        var employeeRecord = await employeeRepo.GetByIdAsync(employeeId);
+        if (employeeRecord == null) throw new Exception("Attendance Record not found");
+
+        employeeRecord.FullName = employee.FullName;
+        employeeRecord.PhoneNumber = employee.PhoneNumber;
+        employeeRecord.Password = employee.Password;
+        
+        employeeRepo.Update(employee);
+        await _unitOfWork.SaveChangesAsync();   
+
+        
+    }
+
+    public async Task DeleteEmployeeInfoAsync(int employeeId)
+    {
+        var employeeRepo = _unitOfWork.Repository<Employee>();
+
+        var employeeRecord = await employeeRepo.GetByIdAsync(employeeId);
+        if (employeeRecord == null)
+            throw new Exception("Employee record not found");
+
+        
+        employeeRepo.Remove(employeeRecord);
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task AssignEmployeeToWorkTimeAsync(int employeeId, int workTimeId)
@@ -92,6 +131,16 @@ public class AdminRepository : IAdminRepository
         await _unitOfWork.SaveChangesAsync();
     }
 
+    public async Task<IEnumerable<WorkTime>> GetWorkTimeAsync(int adminId)
+    {
+        var workTimeRepo = _unitOfWork.Repository<WorkTime>();
+
+        var workTime = await workTimeRepo.FindAsync(e => e.AdminId == adminId);
+
+        return workTime;
+
+    }
+
     public async Task<IEnumerable<AttendanceRecord>> GetRealTimeAttendanceAsync()
     {
         // For real-time, you might filter today's attendance or last known check-ins without check-outs
@@ -142,41 +191,128 @@ public class AdminRepository : IAdminRepository
     }
 
 
-
     public async Task<object> GenerateReportAsync(int? workerId, bool yearly, int year, int? month = null)
     {
-        // Simplified reporting logic
-        // Retrieve attendance records for either a specific worker or all workers
+        // Repositories
+        var absenceRepo = _unitOfWork.Repository<Absence>();
         var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
-        IEnumerable<AttendanceRecord> records;
+
+        // Fetch records based on the workerId
+        IEnumerable<Absence> absences;
+        IEnumerable<AttendanceRecord> attendanceRecords;
 
         if (workerId.HasValue)
         {
-            records = await attendanceRepo.FindAsync(a => a.WorkerId == workerId.Value);
+            absences = await absenceRepo.FindAsync(a => a.WorkerId == workerId.Value);
+            attendanceRecords = await attendanceRepo.FindAsync(a => a.WorkerId == workerId.Value);
         }
         else
         {
-            records = await attendanceRepo.GetAllAsync();
+            absences = await absenceRepo.GetAllAsync();
+            attendanceRecords = await attendanceRepo.GetAllAsync();
         }
 
-        // Filter by year (and month if given)
-        records = records.Where(a => a.CheckIn.Year == year);
+        // Filter absences and attendance by year (and month if provided)
+        absences = absences.Where(a => a.StartDate.Year == year || a.EndDate.Year == year);
+        attendanceRecords = attendanceRecords.Where(a => a.CheckIn.Year == year);
+
         if (!yearly && month.HasValue)
         {
-            records = records.Where(a => a.CheckIn.Month == month.Value);
+            absences = absences.Where(a => a.StartDate.Month == month.Value || a.EndDate.Month == month.Value);
+            attendanceRecords = attendanceRecords.Where(a => a.CheckIn.Month == month.Value);
         }
 
-        // Return a simple summary
-        var totalHours = records.Sum(r => (r.CheckOut.HasValue ? r.CheckOut.Value - r.CheckIn : TimeSpan.Zero).TotalHours);
-        return new
+        // Group and count absences by type and status
+        var absenceReport = new
+        {
+            TotalAbsences = absences.Count(),
+            Leave = new
+            {
+                Total = absences.Count(a => a.Type == AbsenceTypes.Leave),
+                Pending = absences.Count(a => a.Type == AbsenceTypes.Leave && a.Status == AbsenceStatus.Pending),
+                Approved = absences.Count(a => a.Type == AbsenceTypes.Leave && a.Status == AbsenceStatus.Approved),
+                Rejected = absences.Count(a => a.Type == AbsenceTypes.Leave && a.Status == AbsenceStatus.Rejected)
+            },
+            Absent = new
+            {
+                Total = absences.Count(a => a.Type == AbsenceTypes.Absent),
+                Pending = absences.Count(a => a.Type == AbsenceTypes.Absent && a.Status == AbsenceStatus.Pending),
+                Approved = absences.Count(a => a.Type == AbsenceTypes.Absent && a.Status == AbsenceStatus.Approved),
+                Rejected = absences.Count(a => a.Type == AbsenceTypes.Absent && a.Status == AbsenceStatus.Rejected)
+            },
+            Late = new
+            {
+                Total = absences.Count(a => a.Type == AbsenceTypes.Late),
+                Pending = absences.Count(a => a.Type == AbsenceTypes.Late && a.Status == AbsenceStatus.Pending),
+                Approved = absences.Count(a => a.Type == AbsenceTypes.Late && a.Status == AbsenceStatus.Approved),
+                Rejected = absences.Count(a => a.Type == AbsenceTypes.Late && a.Status == AbsenceStatus.Rejected)
+            }
+        };
+
+        // Attendance summary
+        var totalHours = attendanceRecords.Sum(r => (r.CheckOut.HasValue ? r.CheckOut.Value - r.CheckIn : TimeSpan.Zero).TotalHours);
+
+        var attendanceReport = new
+        {
+            TotalAttendanceRecords = attendanceRecords.Count(),
+            TotalHours = totalHours,
+            StatusCounts = new
+            {
+                Absent = attendanceRecords.Count(a => a.Status == AttendanceStatus.Absent),
+                AtWork = attendanceRecords.Count(a => a.Status == AttendanceStatus.AtWork),
+                Attended = attendanceRecords.Count(a => a.Status == AttendanceStatus.Attended)
+            }
+        };
+
+        // Combined report
+        var report = new
         {
             WorkerId = workerId,
             Year = year,
             Month = month,
-            TotalHours = totalHours,
-            RecordCount = records.Count()
+            AbsenceReport = absenceReport,
+            AttendanceReport = attendanceReport
         };
+
+        return report;
     }
+
+
+
+    //public async Task<object> GenerateReportAsync(int? workerId, bool yearly, int year, int? month = null)
+    //{
+    //    // Simplified reporting logic
+    //    // Retrieve attendance records for either a specific worker or all workers
+    //    var attendanceRepo = _unitOfWork.Repository<AttendanceRecord>();
+    //    IEnumerable<AttendanceRecord> records;
+
+    //    if (workerId.HasValue)
+    //    {
+    //        records = await attendanceRepo.FindAsync(a => a.WorkerId == workerId.Value);
+    //    }
+    //    else
+    //    {
+    //        records = await attendanceRepo.GetAllAsync();
+    //    }
+
+    //    // Filter by year (and month if given)
+    //    records = records.Where(a => a.CheckIn.Year == year);
+    //    if (!yearly && month.HasValue)
+    //    {
+    //        records = records.Where(a => a.CheckIn.Month == month.Value);
+    //    }
+
+    //    // Return a simple summary
+    //    var totalHours = records.Sum(r => (r.CheckOut.HasValue ? r.CheckOut.Value - r.CheckIn : TimeSpan.Zero).TotalHours);
+    //    return new
+    //    {
+    //        WorkerId = workerId,
+    //        Year = year,
+    //        Month = month,
+    //        TotalHours = totalHours,
+    //        RecordCount = records.Count()
+    //    };
+    //}
 
 
     public async Task<(string Code, string QrCodeBase64)> GenerateBarcodeCodeAsync()
@@ -223,6 +359,10 @@ public class AdminRepository : IAdminRepository
     }
 
    
+
+   
+
+
 
 
 

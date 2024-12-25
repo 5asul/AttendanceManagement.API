@@ -36,9 +36,9 @@ namespace AttendanceManagement.API.Data
                 .HasForeignKey(b => b.AdminId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // One worker -> Many attendance records
-            modelBuilder.Entity<User>()
-                .HasMany(u => u.AttendanceRecords)
+            // One employee -> Many attendance records
+            modelBuilder.Entity<Employee>()
+                .HasMany(e => e.AttendanceRecords)
                 .WithOne(a => a.Worker)
                 .HasForeignKey(a => a.WorkerId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -64,11 +64,18 @@ namespace AttendanceManagement.API.Data
                 .HasForeignKey(a => a.BarcodeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // One Users -> Many Employees
+            // One User -> Many Employees
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Employees)
                 .WithOne(e => e.Admin)
                 .HasForeignKey(e => e.AdminId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // one User -> Many Work Time
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.workTimes)
+                .WithOne(w => w.Admin)
+                .HasForeignKey(w => w.AdminId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Many-to-many relationship configuration

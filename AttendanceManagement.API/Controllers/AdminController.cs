@@ -10,11 +10,48 @@ public class AdminController(IUnitOfWork unitOfWork) : ControllerBase
 
 
     [HttpPost("add-worker")]
-    public async Task<IActionResult> AddWorker([FromBody] AddWorkerDto dto)
+    public async Task<IActionResult> AddEmployee([FromBody] AddWorkerDto dto)
     {
-        var worker = await unitOfWork.AdminRepository.AddWorkerAsync(dto.Name, dto.PhoneNumber, dto.Password);
+        var worker = await unitOfWork.AdminRepository.AddEmployeeAsync(dto.Name, dto.PhoneNumber, dto.Password);
         return Ok(worker);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetEmployeesAsync([FromQuery] int adminId)
+    {
+        var employees = await unitOfWork.AdminRepository.GetEmployeesAsync(adminId);
+        if (employees == null) return NotFound("No employees found for the specified admin.");
+        return Ok(employees);
+    }
+
+    [HttpPut("{employeeId}")]
+    public async Task<IActionResult> EditEmployeeInfo(int employeeId, [FromBody] Employee employee)
+    {
+        try
+        {
+            await unitOfWork.AdminRepository.EditEmployeeInfo(employeeId, employee);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("{employeeId}")]
+    public async Task<IActionResult> DeleteEmployeeInfoAsync(int employeeId)
+    {
+        try
+        {
+            await unitOfWork.AdminRepository.DeleteEmployeeInfoAsync(employeeId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
 
     [HttpPost("assign-worker-to-worke-time")]
     public async Task<IActionResult> AssignUserToWorkTime([FromBody] AssignWorkerToWorkTimeDto dto )
@@ -48,6 +85,21 @@ public class AdminController(IUnitOfWork unitOfWork) : ControllerBase
     {
         await unitOfWork.AdminRepository.AddCheckInCheckOutTimeAsync( dto.CheckInTime, dto.CheckOutTime ,type);
         return Ok("Times assigned.");
+    }
+
+    [HttpGet("work-time")]
+    public async Task<IActionResult> GetWorkTimeAsync([FromQuery] int employeeId)
+    {
+        try
+        {
+            var workTime = await unitOfWork.AdminRepository.GetWorkTimeAsync(employeeId);
+            if (workTime == null) return NotFound("Work time record not found for the specified employee.");
+            return Ok(workTime);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("realtime-attendance")]

@@ -17,9 +17,11 @@ namespace AttendanceManagement.API.Models
 
         [ForeignKey(nameof(Worker))]
         public int WorkerId { get; set; }
+        public Employee Worker { get; set; } = null!;
 
         [ForeignKey(nameof(Barcode))]
         public int BarcodeId { get; set; }
+        public Barcode Barcode { get; set; } = null!;
 
         [Required]
         public DateTime CheckIn { get; set; }
@@ -30,8 +32,8 @@ namespace AttendanceManagement.API.Models
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
-        public User Worker { get; set; } = null!;
-        public Barcode Barcode { get; set; } = null!;
+       
+        
+        
     }
 }
